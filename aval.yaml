@@ -1,0 +1,21 @@
+# aval repository manifest (schema: aval.v1.json in github.com/svallejo-dev/aval).
+version: 1
+context: ORD
+mode: enforce
+tierDefault: 1
+openspec:
+  version: "1.13.1"
+paths:
+  dx:
+    - Makefile
+    - .golangci.yml
+    - .tool-versions
+    - ".github/**"
+    - "cmd/**"
+    - "internal/platform/**"
+  feat:
+    - "internal/**"
+    - "api/**"
+    - "openspec/**"
+  seam:
+    - internal/app/app.go

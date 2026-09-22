@@ -1,0 +1,37 @@
+schema: spec-driven
+
+# Project context: shown to AI when creating artifacts.
+context: |
+  Sandbox for aval (github.com/svallejo-dev/aval): the "orders" REST
+  microservice in Go 1.27, net/http only, Package Oriented Design with pure
+  domain packages (internal/order, internal/payment) and in-memory adapters.
+  Money is an int64 in minor currency units.
+  Every requirement name starts with an obligation ID of context ORD, then a
+  title, under 50 characters in total: "ORD-F01 Order total equals ...".
+  Kinds: F must happen, N must never happen, I invariant, S SLO,
+  A assumption, O open question. Bodies use SHALL or MUST and every
+  requirement has at least one scenario with WHEN and THEN.
+  Every F, N and I obligation is bound to a Go test whose subtest name starts
+  with its ID: t.Run("ORD-F01 ...", ...). The rules are aval's ADR-0002.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

@@ -1,0 +1,311 @@
+openapi: 3.1.0
+info:
+  title: orders
+  version: 0.1.0
+  summary: Sandbox microservice for aval. Not a real service.
+  description: |
+    Orders and their payments, kept in memory. Money is an integer in minor
+    currency units. Every operation lists, in x-requirements, the obligation
+    IDs of openspec/specs/ that govern it.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: orders
+  - name: payments
+  - name: health
+
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      tags: [health]
+      summary: Report that the service is up
+      x-requirements: []
+      responses:
+        "204":
+          description: The service is up.
+
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a pending order from its lines
+      x-requirements: [ORD-F04, ORD-F01, ORD-N01]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [lines]
+              properties:
+                lines:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { $ref: "#/components/schemas/LineRequest" }
+      responses:
+        "201":
+          description: Order created.
+          headers:
+            Location:
+              description: Path of the new order.
+              schema: { type: string, example: /orders/ABCDEFGHIJKLMNOPQRSTUVWXYZ }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /orders/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Read an order by its ID
+      x-requirements: [ORD-F03]
+      responses:
+        "200":
+          description: The order.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /orders/{id}/lines:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: addOrderLine
+      tags: [orders]
+      summary: Add a line to a pending order
+      x-requirements: [ORD-F01, ORD-N01, ORD-N03, ORD-I01]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LineRequest" }
+      responses:
+        "200":
+          description: The order with the new line.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /orders/{id}/status:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: changeOrderStatus
+      tags: [orders]
+      summary: Move an order to another status
+      description: |
+        Allowed edges: pending to paid, pending to cancelled, paid to shipped
+        and paid to cancelled. Shipped and cancelled are closed.
+      x-requirements: [ORD-F02, ORD-N02, ORD-I01]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/Status" }
+      responses:
+        "200":
+          description: The order in its new status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /payments:
+    post:
+      operationId: capturePayment
+      tags: [payments]
+      summary: Capture a payment for an order
+      x-requirements: [ORD-F11]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [orderId, amount]
+              properties:
+                orderId: { type: string, minLength: 1 }
+                amount: { type: integer, format: int64, minimum: 1 }
+      responses:
+        "201":
+          description: Payment captured.
+          headers:
+            Location:
+              description: Path of the new payment.
+              schema: { type: string, example: /payments/ABCDEFGHIJKLMNOPQRSTUVWXYZ }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /payments/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getPayment
+      tags: [payments]
+      summary: Read a payment and its refunds
+      x-requirements: [ORD-I10]
+      responses:
+        "200":
+          description: The payment.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Payment" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /payments/{id}/refunds:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: refundPayment
+      tags: [payments]
+      summary: Refund part of a payment, idempotently per key
+      x-requirements: [ORD-F10, ORD-F12, ORD-N10, ORD-N11, ORD-I10]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Identifies the refund. Repeating it with the same amount replays the refund.
+          schema: { type: string, minLength: 1, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [amount]
+              properties:
+                amount: { type: integer, format: int64, minimum: 1 }
+      responses:
+        "200":
+          description: Replay of the refund this key already issued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Refund" }
+        "201":
+          description: Refund issued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Refund" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The refund would take the refunded total above the captured amount.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: Invalid amount, or the key already refunded another amount.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, minLength: 1 }
+
+  schemas:
+    Status:
+      type: string
+      enum: [pending, paid, shipped, cancelled]
+    LineRequest:
+      type: object
+      additionalProperties: false
+      required: [sku, quantity, unitPrice]
+      properties:
+        sku: { type: string, minLength: 1 }
+        quantity: { type: integer, minimum: 1, maximum: 1000 }
+        unitPrice: { type: integer, format: int64, minimum: 0, maximum: 100000000 }
+    Line:
+      type: object
+      required: [sku, quantity, unitPrice, subtotal]
+      properties:
+        sku: { type: string }
+        quantity: { type: integer }
+        unitPrice: { type: integer, format: int64 }
+        subtotal: { type: integer, format: int64 }
+    Order:
+      type: object
+      required: [id, status, lines, total]
+      properties:
+        id: { type: string }
+        status: { $ref: "#/components/schemas/Status" }
+        lines:
+          type: array
+          items: { $ref: "#/components/schemas/Line" }
+        total: { type: integer, format: int64, minimum: 0 }
+    Refund:
+      type: object
+      required: [key, amount]
+      properties:
+        key: { type: string }
+        amount: { type: integer, format: int64, minimum: 1 }
+    Payment:
+      type: object
+      required: [id, orderId, captured, refunded, refunds]
+      properties:
+        id: { type: string }
+        orderId: { type: string }
+        captured: { type: integer, format: int64, minimum: 1 }
+        refunded: { type: integer, format: int64, minimum: 0 }
+        refunds:
+          type: array
+          items: { $ref: "#/components/schemas/Refund" }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+  responses:
+    BadRequest:
+      description: Malformed body or missing idempotency key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: No resource has that ID.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: The change conflicts with the order's status.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unprocessable:
+      description: The request is well formed but breaks a rule of the domain.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }

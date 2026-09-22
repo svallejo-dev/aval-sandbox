@@ -1,0 +1,9 @@
+# Default owner of everything in the repository.
+* @svallejo-dev
+
+# The gate's policy, its change artifacts, CI and the specs need an explicit
+# owner review.
+/aval.yaml @svallejo-dev
+/.aval/ @svallejo-dev
+/.github/ @svallejo-dev
+/openspec/ @svallejo-dev
