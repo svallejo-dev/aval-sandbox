@@ -18,7 +18,7 @@ go.work.sum
 .DS_Store
 
 # Casos que rapid guarda cuando falla una propiedad
-testdata/rapid/
+**/testdata/rapid/
 
 # Evidencia y caché locales de aval verify
 /.aval/evidence/
