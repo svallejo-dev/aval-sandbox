@@ -16,3 +16,10 @@ go.work.sum
 # Entorno
 .env
 .DS_Store
+
+# Casos que rapid guarda cuando falla una propiedad
+testdata/rapid/
+
+# Evidencia y caché locales de aval verify
+/.aval/evidence/
+/.aval/cache/

@@ -2,6 +2,7 @@ package payment_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"pgregory.net/rapid"
@@ -86,6 +87,24 @@ func TestRefund(t *testing.T) {
 		}
 		if got := p.Refunded(); got != 0 {
 			t.Errorf("Refunded() = %d, want 0", got)
+		}
+	})
+	t.Run("ORD-F12 key longer than 128 bytes is rejected", func(t *testing.T) {
+		t.Parallel()
+		p := mustNew(t, 1000)
+		if _, _, err := p.Refund(strings.Repeat("k", 129), 100); !errors.Is(err, payment.ErrInvalidKey) {
+			t.Fatalf("Refund with a 129-byte key: err = %v, want ErrInvalidKey", err)
+		}
+		if got := p.Refunded(); got != 0 {
+			t.Errorf("Refunded() = %d, want 0", got)
+		}
+	})
+	t.Run("ORD-F12 key of 128 bytes is accepted", func(t *testing.T) {
+		t.Parallel()
+		p := mustNew(t, 1000)
+		mustRefund(t, p, strings.Repeat("k", 128), 100)
+		if got := p.Refunded(); got != 100 {
+			t.Errorf("Refunded() = %d, want 100", got)
 		}
 	})
 	t.Run("ORD-N10 refund above what is left is rejected", func(t *testing.T) {

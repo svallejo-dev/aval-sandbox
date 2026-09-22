@@ -80,6 +80,29 @@ aval trace --run-tests --plain  # además ejecuta go test y muestra el resultado
 
 Las specs se validan con `openspec validate --all --strict`, usando la versión exacta de `aval.yaml` (`@fission-ai/openspec@1.13.1`).
 
+### Familias de rutas
+
+`aval.yaml` reparte las rutas entre `dx`, `feat` y `seam`. El código que se ejecuta en producción nunca es `dx`:
+
+- **feat:** `internal/**`, `api/**` y `openspec/**`. Incluye `internal/platform/**`, porque su comportamiento lo ve el cliente (límite del cuerpo, decodificación JSON, cuerpo de los errores).
+- **seam:** `cmd/**` e `internal/app/app.go`, que solo conectan las piezas.
+- **dx:** tooling, CI e instrucciones de agentes (`AGENTS.md`, `CLAUDE.md`, `.claude/**`, `.agents/**`).
+
+Un commit que toca `dx` y `feat` a la vez es `mixed` y bloquea.
+
+### Política base y PRs de validación
+
+El gate lee la política **del SHA base** (ADR-0005 de aval). Un PR que edita el `aval.yaml` raíz, `.aval/baseline.json`, `.github/**`, `CODEOWNERS` o `.golangci.yml` produce `tamper` (`policy_edited`) y bloquea.
+
+Las etiquetas `aval:override` y `aval:human-approved` son solo informativas: el gate lee los reviews del PR, no las etiquetas.
+
+Resultados esperados de los PRs de validación:
+
+- **PR 1:**
+  - El test nuevo tiene que **compilar contra la base**. La falla-antes se ejecuta superponiendo el test sobre la base: si allí no compila, la evidencia es `weak` y el gate da `warn` (`weak_evidence`) en lugar de evidencia fuerte.
+  - Tampoco debe tocar `internal/app/app.go`: es `seam` y añadiría el aviso `seam_touched`.
+- **PR 5** (cambia `mode` en `aval.yaml`): se espera que **bloquee** con `tamper` (`policy_edited`). El cambio de modo no tiene efecto, porque el modo sale de la política de la base.
+
 ## Licencia
 
 [MIT](LICENSE)

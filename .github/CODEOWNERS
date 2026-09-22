@@ -1,9 +1,15 @@
 # Default owner of everything in the repository.
 * @svallejo-dev
 
-# The gate's policy, its change artifacts, CI and the specs need an explicit
-# owner review.
+# The gate's policy, its change artifacts, CI, the specs and the lint
+# config need an explicit owner review.
 /aval.yaml @svallejo-dev
 /.aval/ @svallejo-dev
 /.github/ @svallejo-dev
 /openspec/ @svallejo-dev
+/.golangci.yml @svallejo-dev
+
+# Tests and their data bind the obligations: a change to them needs the same
+# review as a change to the specs.
+*_test.go @svallejo-dev
+**/testdata/ @svallejo-dev

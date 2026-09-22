@@ -132,6 +132,28 @@ func TestRefund(t *testing.T) {
 			t.Errorf("refunded = %d, want 0", got)
 		}
 	})
+	t.Run("ORD-F12 key longer than 128 bytes is a bad request", func(t *testing.T) {
+		t.Parallel()
+		h := newServer()
+		p := capture(t, h, "1000")
+		if got := refund(t, h, p.ID, strings.Repeat("k", 129), "300"); got != http.StatusBadRequest {
+			t.Fatalf("status %d, want 400", got)
+		}
+		if got := refunded(t, h, p.ID); got != 0 {
+			t.Errorf("refunded = %d, want 0", got)
+		}
+	})
+	t.Run("ORD-F12 key of 128 bytes is accepted", func(t *testing.T) {
+		t.Parallel()
+		h := newServer()
+		p := capture(t, h, "1000")
+		if got := refund(t, h, p.ID, strings.Repeat("k", 128), "300"); got != http.StatusCreated {
+			t.Fatalf("status %d, want 201", got)
+		}
+		if got := refunded(t, h, p.ID); got != 300 {
+			t.Errorf("refunded = %d, want 300", got)
+		}
+	})
 	t.Run("ORD-N10 refund above captured is a conflict", func(t *testing.T) {
 		t.Parallel()
 		h := newServer()

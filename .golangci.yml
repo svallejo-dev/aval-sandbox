@@ -34,12 +34,18 @@ linters:
       max: 10
     depguard:
       rules:
-        # The domain packages (Package Oriented Design) depend on the standard
-        # library only; their tests may use test libraries such as rapid.
+        # Package Oriented Design by convention: every package directly under
+        # internal/ is a domain package and depends on the standard library
+        # only, so a new aggregate is covered without editing this file. The
+        # exceptions are the adapters (<name>http, <name>mem, <name>pg), the
+        # composition root and the platform packages. Tests may use test
+        # libraries such as rapid.
         pure-domain:
           files:
-            - "**/internal/order/*.go"
-            - "**/internal/payment/*.go"
+            - "**/internal/*/*.go"
+            - "!**/internal/*{http,mem,pg}/*.go"
+            - "!**/internal/app/*.go"
+            - "!**/internal/platform/**"
             - "!$test"
           allow:
             - $gostd

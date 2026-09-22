@@ -1,12 +1,22 @@
 name: ci
 
+# Shape of aval's ADR-0005 §8, ready for the aval-gate job: a new review
+# re-runs the workflow, the checkout is the PR head (not the merge commit) with
+# full history, permissions are read-only and no job is filtered with a
+# job-level if:, because a skipped job counts as a success for a required
+# check.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
   push:
     branches: [main]
 
 permissions:
   contents: read
+  pull-requests: read
+  checks: read
 
 jobs:
   ci:
@@ -14,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       # .tool-versions (asdf) pins Go and golangci-lint.
       - uses: actions/setup-go@v7

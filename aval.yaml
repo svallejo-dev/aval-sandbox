@@ -5,17 +5,24 @@ mode: enforce
 tierDefault: 1
 openspec:
   version: "1.13.1"
+# Runtime code is feat or seam, never dx. internal/platform/** is runtime code
+# whose behavior clients see (body limits, JSON decoding, error bodies), so it
+# stays feat through internal/**. cmd/** and internal/app/app.go only wire the
+# service together, so they are seam.
 paths:
   dx:
     - Makefile
     - .golangci.yml
     - .tool-versions
     - ".github/**"
-    - "cmd/**"
-    - "internal/platform/**"
+    - AGENTS.md
+    - CLAUDE.md
+    - ".claude/**"
+    - ".agents/**"
   feat:
     - "internal/**"
     - "api/**"
     - "openspec/**"
   seam:
     - internal/app/app.go
+    - "cmd/**"
